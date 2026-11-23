@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SQL Subqueries Final Study</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{--bg:#f6f7f4;--surface:#fff;--ink:#1d2421;--muted:#5f6b66;--line:#d5dad6;--accent:#1f6f5c;--accent-ink:#fff;--good:#1b7a3d;--goodbg:#e2f4e8;--bad:#b3261e;--badbg:#fbe6e4;--code:#eef1ee;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a18;--surface:#1c2421;--ink:#e8eeea;--muted:#9aa8a1;--line:#33403b;--accent:#5fc4a6;--accent-ink:#0d1f19;--good:#7fdc9f;--goodbg:#1b3626;--bad:#ff8f86;--badbg:#3d1f1d;--code:#111816}}
+:root[data-theme="dark"]{--bg:#141a18;--surface:#1c2421;--ink:#e8eeea;--muted:#9aa8a1;--line:#33403b;--accent:#5fc4a6;--accent-ink:#0d1f19;--good:#7fdc9f;--goodbg:#1b3626;--bad:#ff8f86;--badbg:#3d1f1d;--code:#111816}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Georgia,"Iowan Old Style",serif}
+main{max-width:760px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:1.6rem;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 18px;font-family:system-ui,sans-serif;font-size:.9rem}
+button,select{font:inherit;font-family:system-ui,sans-serif;font-size:.92rem}
+.modes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.modes button,.ctl button{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer}
+.modes button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.modes button:focus-visible,.opt:focus-visible,.ctl button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select{padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);max-width:100%;margin-bottom:10px}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:12px 0 6px}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
+.stat{display:flex;justify-content:space-between;color:var(--muted);font:.85rem system-ui,sans-serif;margin-bottom:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+.sec{color:var(--muted);font:.8rem system-ui,sans-serif;margin-bottom:8px}
+.q{font-size:1.1rem;margin:0 0 14px;white-space:pre-wrap}
+.opt{display:block;width:100%;text-align:left;margin:8px 0;padding:11px 13px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);cursor:pointer;font:.86rem/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+.opt.txt{font:1rem/1.45 Georgia,serif}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt:disabled{cursor:default;color:var(--ink)}
+.opt.right{background:var(--goodbg);border-color:var(--good)}
+.opt.wrong{background:var(--badbg);border-color:var(--bad)}
+.exp{margin-top:14px;padding:12px 14px;border-radius:8px;background:var(--code);font:.92rem/1.5 system-ui,sans-serif}
+.exp b.g{color:var(--good)}.exp b.r{color:var(--bad)}
+.ctl{display:flex;justify-content:space-between;gap:8px;margin-top:16px}
+.ctl .primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.ctl button:disabled{opacity:.4;cursor:default}
+.end{text-align:center;padding:30px 10px}
+.end .big{font-size:2.2rem;margin:6px 0}
+.empty{color:var(--muted);text-align:center;padding:24px 8px;font-family:system-ui,sans-serif}
+.link{background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0}
+</style>
+</head>
+<body>
+<main>
+<h1>Database Programming I: Final Study</h1>
+<p class="sub">JustLee Books practice questions. Pick a mode, answer, and read the explanation.</p>
+<div class="modes" id="modes"></div>
+<div id="secrow" style="display:none"><select id="sec" aria-label="Section"></select></div>
+<details style="margin:8px 0 4px;font-family:system-ui,sans-serif;font-size:.9rem"><summary style="cursor:pointer;color:var(--accent)">JustLee Books table reference</summary><pre style="background:var(--code);padding:12px;border-radius:8px;overflow-x:auto;font:.8rem/1.5 ui-monospace,Menlo,Consolas,monospace;margin:8px 0">CUSTOMERS  (customer#, lastname, firstname, address, city, state, zip, referred, region, email)
+ORDERS     (order#, customer#, orderdate, shipdate, shipstreet, shipcity, shipstate, shipzip, shipcost)
+ORDERITEMS (order#, item#, isbn, quantity, paideach)
+BOOKS      (isbn, title, pubdate, pubid, cost, retail, discount, category)
+BOOKAUTHOR (isbn, authorid)
+AUTHOR     (authorid, lname, fname)
+PUBLISHER  (pubid, name, contact, phone)
+PROMOTION  (gift, minretail, maxretail)</pre><div style="color:var(--muted)">Questions that mention a table structure or table contents refer to these tables.</div></details>
+<div class="bar"><i id="fill"></i></div>
+<div class="stat"><span id="pos"></span><span id="score"></span></div>
+<div id="stage"></div>
+<p class="sub" style="margin-top:18px"><button class="link" id="reset">Clear saved wrong answers</button></p>
+</main>
+<script>
+var S=["Single-Row Subqueries","Multiple-Row Subqueries","Multiple-Column Subqueries and NULLs","Subqueries in FROM and HAVING","Correlated Subqueries and MERGE"];
+// a = index of correct option; s = section index
+var Q=[
+{s:0,q:"Which query identifies customers living in the same state as the customer named Leila Smith?",o:["SELECT customer#\nFROM customers\nWHERE state = (SELECT state FROM customers\n  WHERE lastname = 'SMITH');","SELECT customer#\nFROM customers\nWHERE state = (SELECT state FROM customers\n  WHERE lastname = 'SMITH' OR firstname = 'LEILA');","SELECT customer#\nFROM customers\nWHERE state = (SELECT state FROM customers\n  WHERE lastname = 'SMITH' AND firstname = 'LEILA'\n  ORDER BY customer);","SELECT customer#\nFROM customers\nWHERE state = (SELECT state FROM customers\n  WHERE lastname = 'SMITH' AND firstname = 'LEILA');"],a:3,e:"The subquery must identify exactly one customer, so both first and last name are needed with AND. OR could return many rows, and ORDER BY customer references a column that doesn't exist."},
+{s:0,q:"Which of the following is a valid SELECT statement?",o:["SELECT order#\nFROM orders\nWHERE shipdate = SELECT shipdate FROM orders WHERE order# = 1010;","SELECT order#\nFROM orders\nWHERE shipdate = (SELECT shipdate FROM orders)\nAND order# = 1010;","SELECT order#\nFROM orders\nWHERE shipdate = (SELECT shipdate FROM orders WHERE order# = 1010);","SELECT order#\nFROM orders\nHAVING shipdate = (SELECT shipdate FROM orders WHERE order# = 1010);"],a:2,e:"A subquery must be enclosed in parentheses (rules out A), a single-row = comparison needs a subquery limited to one row (B returns all rows), and HAVING needs grouped data (D)."},
+{s:0,q:"Which of the following operators is considered a single-row operator?",o:["IN","ALL","<>","<>ALL"],a:2,e:"<> (like =, <, >, <=, >=) compares to one value. IN, ALL, ANY and their combinations are multiple-row operators."},
+{s:1,q:"Which of the following queries determines which customers have ordered the same books as customer 1017?",o:["SELECT order#\nFROM orders\nWHERE customer# = 1017;","SELECT customer#\nFROM orders JOIN orderitems USING(order#)\nWHERE isbn = (SELECT isbn FROM orderitems\n  WHERE customer# = 1017);","SELECT customer#\nFROM orders\nWHERE order# = (SELECT order# FROM orderitems\n  WHERE customer# = 1017);","SELECT customer#\nFROM orders JOIN orderitems USING(order#)\nWHERE isbn IN (SELECT isbn\n  FROM orderitems JOIN orders USING(order#)\n  WHERE customer# = 1017);"],a:3,e:"Customer 1017 may have ordered several books, so you need the multiple-row IN operator. The subquery must also join orders to reach customer#, since orderitems has no customer# column."},
+{s:0,q:"Which of the following statements is valid?",o:["SELECT title FROM books\nWHERE retail < (SELECT cost FROM books\n  WHERE isbn = '9959789321');","SELECT title FROM books\nWHERE retail = (SELECT cost FROM books\n  WHERE isbn = '9959789321' ORDER BY cost);","SELECT title FROM books\nWHERE category IN (SELECT cost FROM orderitems\n  WHERE isbn = '9959789321');","none of the above statements"],a:0,e:"A returns one value (ISBN is unique) compared with a single-row operator. B has an ORDER BY inside a subquery, and C compares category with cost, which is a mismatched data type and the wrong table."},
+{s:3,q:"Which of the following statements is correct?",o:["If a subquery is used in the outer query's FROM clause, the data in the temporary table can't be referenced by clauses used in the outer query.","The temporary table created by a subquery in the outer query's FROM clause must be assigned a table alias, or it can't be joined with another table by using the JOIN keyword.","If a temporary table is created through a subquery in the outer query's FROM clause, the data in the temporary table can be referenced by another clause in the outer query.","none of the above"],a:2,e:"A subquery in FROM acts as an inline view. Its columns can be used by the outer query's SELECT, WHERE, and other clauses."},
+{s:0,q:"Which of the following queries identifies other customers who were referred to JustLee Books by the same person who referred Jorge Perez?",o:["SELECT customer#\nFROM customers\nWHERE referred = (SELECT referred FROM customers\n  WHERE firstname = 'JORGE' AND lastname = 'PEREZ');","SELECT referred\nFROM customers\nWHERE (customer#, referred) = (SELECT customer#\n  FROM customers\n  WHERE firstname = 'JORGE' AND lastname = 'PEREZ');","SELECT referred\nFROM customers\nWHERE (customer#, referred) IN (SELECT customer#\n  FROM customers\n  WHERE firstname = 'JORGE' AND lastname = 'PEREZ');","SELECT customer#\nFROM customers\nWHERE customer# = (SELECT customer#\n  FROM customers\n  WHERE firstname = 'JORGE' AND lastname = 'PEREZ');"],a:0,e:"The subquery returns Jorge's referrer; the outer query matches other customers with the same referred value. B and C have a column-count mismatch (two columns vs one)."},
+{s:0,q:"In which of the following situations is using a subquery suitable?",o:["when you need to find all customers living in a particular region of the country","when you need to find all publishers who have toll-free telephone numbers","when you need to find the titles of all books shipped on the same date as an order placed by a particular customer","when you need to find all books published by Publisher 4"],a:2,e:"A subquery fits when the search value must first be looked up (the ship date of a customer's order). The other three can be answered with a simple WHERE condition."},
+{s:1,q:"Which of the following queries identifies customers who have ordered the same books as customers 1001 and 1005?",o:["SELECT customer#\nFROM orders JOIN books USING(isbn)\nWHERE isbn = (SELECT isbn FROM orderitems JOIN books USING(isbn)\n  WHERE customer# = 1001 OR customer# = 1005));","SELECT customer#\nFROM orders JOIN books USING(isbn)\nWHERE isbn < ANY (SELECT isbn FROM orderitems JOIN books USING(isbn)\n  WHERE customer# = 1001 OR customer# = 1005));","SELECT customer#\nFROM orders JOIN books USING(isbn)\nWHERE isbn = (SELECT isbn FROM orderitems JOIN orders USING(order#)\n  WHERE customer# = 1001 OR 1005));","SELECT customer#\nFROM orders JOIN orderitems USING(order#)\nWHERE isbn IN (SELECT isbn\n  FROM orders JOIN orderitems USING(order#)\n  WHERE customer# IN (1001, 1005));"],a:3,e:"Only D joins the correct tables (orders and orderitems share order#), uses a multiple-row IN operator, and has valid syntax. The others join orders to books on a column orders doesn't have, or use a wrong operator."},
+{s:1,q:"Which of the following operators is used to find all values greater than the highest value returned by a subquery?",o:[">ALL","<ALL",">ANY","<ANY","IN"],a:0,e:">ALL means greater than every value returned, i.e. greater than the maximum. >ANY means greater than at least one value, i.e. greater than the minimum."},
+{s:3,q:"Which query determines the customers who have ordered the most books from JustLee Books?",o:["SELECT customer#\nFROM orders JOIN orderitems USING(order#)\nGROUP BY customer#\nHAVING SUM(quantity) = (SELECT MAX(SUM(quantity))\n  FROM orders JOIN orderitems USING(order#)\n  GROUP BY customer#);","SELECT customer#\nFROM orders JOIN orderitems USING(order#)\nWHERE SUM(quantity) = (SELECT MAX(SUM(quantity))\n  FROM orderitems GROUP BY customer#);","SELECT customer#\nFROM orders\nWHERE MAX(SUM(quantity)) = (SELECT MAX(SUM(quantity))\n  FROM orderitems GROUP BY order#);","SELECT customer#\nFROM orders\nHAVING quantity = (SELECT MAX(SUM(quantity))\n  FROM orderitems GROUP BY customer#);"],a:0,e:"A group function like SUM can't go in WHERE, so the comparison belongs in HAVING with a GROUP BY. The subquery must also join to orders to be able to group by customer#."},
+{s:0,q:"Which of the following statements is correct?",o:["The IN comparison operator can't be used with a subquery that returns only one row of results.","The equals (=) comparison operator can't be used with a subquery that returns more than one row of results.","In an uncorrelated subquery, statements in the outer query are executed first, and then statements in the subquery are executed.","A subquery can be nested only in the outer query's SELECT clause."],a:1,e:"= is a single-row operator and fails with an error if the subquery returns multiple rows. IN works with any number of rows, uncorrelated subqueries run first, and subqueries can appear in WHERE, HAVING, FROM, and SELECT."},
+{s:2,q:"What is the purpose of the following query?\n\nSELECT isbn, title FROM books\nWHERE (pubid, category) IN\n  (SELECT pubid, category FROM books\n   WHERE title LIKE '%ORACLE%');",o:["It determines which publisher published a book belonging to the Oracle category and then lists all other books published by that same publisher.","It lists all publishers and categories containing the value ORACLE.","It lists the ISBN and title of all books belonging to the same category and having the same publisher as any book with the phrase ORACLE in its title.","None of the above. The query contains a multiple-row operator, and because the inner query returns only one value, the SELECT statement will fail and return an error message."],a:2,e:"This is a multiple-column subquery: a book matches when both its pubid and category pair match a pair from a book with ORACLE in the title."},
+{s:3,q:"A subquery must be placed in the outer query's HAVING clause if:",o:["The inner query needs to reference the value returned to the outer query.","The value returned by the inner query is to be compared to grouped data in the outer query.","The subquery returns more than one value to the outer query.","None of the above. Subqueries can't be used in the outer query's HAVING clause."],a:1,e:"Group function results (SUM, AVG, COUNT, ...) can only be filtered in HAVING, so a subquery whose value is compared to grouped data goes there."},
+{s:1,q:"Which of the following SQL statements lists all books written by the author of The Wok Way to Cook?",o:["SELECT title FROM books\nWHERE isbn IN (SELECT isbn FROM bookauthor\n  HAVING authorid IN 'THE WOK WAY TO COOK);","SELECT isbn FROM bookauthor\nWHERE authorid IN (SELECT authorid\n  FROM books JOIN bookauthor USING(isbn)\n  WHERE title = 'THE WOK WAY TO COOK');","SELECT title FROM bookauthor\nWHERE authorid IN (SELECT authorid\n  FROM books JOIN bookauthor USING(isbn)\n  WHERE title = 'THE WOK WAY TO COOK);","SELECT isbn FROM bookauthor\nHAVING authorid = SELECT authorid\n  FROM books JOIN bookauthor USING(isbn)\n  WHERE title = 'THE WOK WAY TO COOK';"],a:1,e:"B is the only one with correct syntax: the subquery finds the author ID(s) through the books-bookauthor join, and the outer query lists the matching ISBNs. A and C have missing quotes, and D lacks parentheses and misuses HAVING."},
+{s:2,q:"Which of the following statements is correct?",o:["If the subquery returns only a NULL value, the only records returned by an outer query are those containing an equivalent NULL value.","A multiple-column subquery can be used only in the outer query's FROM clause.","A subquery can contain only one condition in its WHERE clause.","The order of columns listed in the SELECT clause of a multiple-column subquery must be in the same order as the corresponding columns listed in the outer query's WHERE clause."],a:3,e:"Columns are compared by position, so the order must match. NULL never equals NULL in a comparison, so A is false; multiple-column subqueries work in WHERE too; and a subquery can have any number of conditions."},
+{s:4,q:"In a MERGE statement, an INSERT is placed in which conditional clause?",o:["USING","WHEN MATCHED","WHEN NOT MATCHED","INSERTS aren't allowed in a MERGE statement."],a:2,e:"WHEN MATCHED holds the UPDATE (the row exists); WHEN NOT MATCHED holds the INSERT (the row doesn't exist yet). USING names the source data."},
+{s:1,q:"Given the following query, which statement is correct?\n\nSELECT order# FROM orders\nWHERE order# IN (SELECT order# FROM orderitems\n  WHERE isbn = '9959789321');",o:["The statement doesn't execute because the subquery and outer query don't reference the same table.","The outer query removes duplicates in the subquery's Order# list.","The query fails if only one result is returned to the outer query because the outer query's WHERE clause uses the IN comparison operator.","No rows are displayed because the ISBN in the WHERE clause is enclosed in single quotation marks."],a:1,e:"A subquery can use a different table. Order# is unique in orders, so each matching order appears only once in the output even if the subquery's list has duplicates. IN works with one or many rows, and quotes are correct for a character ISBN."},
+{s:2,q:"Given the following SQL statement, which statement is most accurate?\n\nSELECT customer# FROM customers\nJOIN orders USING(customer#)\nWHERE shipdate-orderdate IN\n  (SELECT MAX(shipdate-orderdate) FROM orders\n   WHERE shipdate IS NULL);",o:["The SELECT statement fails and returns an Oracle error message.","The outer query displays no rows in its results because the subquery passes a NULL value to the outer query.","The customer number is displayed for customers whose orders haven't yet shipped.","The customer numbers of all customers who haven't placed an order are displayed."],a:1,e:"Orders with a NULL shipdate give a NULL date difference, so MAX returns NULL. Nothing is ever equal to NULL, so the outer query returns no rows (and no error)."},
+{s:4,q:"Which operator is used to process a correlated subquery?",o:["EXISTS","IN","LINK","MERGE"],a:0,e:"EXISTS (and NOT EXISTS) tests whether the correlated subquery returns any rows for each row processed by the outer query."}
+];
+var L="abcdef";
+S=["Chapter 9: Joining Data from Multiple Tables","Chapter 10: Single-Row Functions","Chapter 11: Group Functions","Chapter 12: Subqueries and MERGE"];
+Q.forEach(function(q){q.s=3;q.r="Ch. 12 practice set (answers worked out by me)"});
+function P(s,r,q,o,a,e){Q.push({s:s,r:r,q:q,o:o,a:a,e:e})}
+var R="Weeks 11-12 quizzes (answer key, duplicates merged)";
+function T(q,a){P(1,R,q,["True","False"],a?0:1)}
+function M(q,o,a){P(1,R,q,o,a)}
+M("Which of the following can be used to replace a specific set of characters with another set of characters?",["SUBSTR","REPLACE","FNDRPLCE","none of the above"],1);
+M("Which of the following format model elements can be used to spell out a number?",["TH","STRING","SP","SP#"],2);
+M("Which of the following format argument elements indicates that the name of the day of the week for the specified date should be displayed?",["DDD","DD","D","DAY"],3);
+M("Which of the following keywords will return the value of the date according to the computer?",["SYSTEMDATE","SYSDATE","DATE","DATESYS"],1);
+M("The TO_CHAR function can be used to format what types of data?",["numeric","date","numeric and date","no formatting can be performed"],2);
+M("Which of the following is an accurate statement?",["When the LOWER function is used in a SELECT clause, it will automatically store the data in lower-case letters in the database table.","When the LOWER function is used in a SELECT clause, the function stays in effect for the remainder of that user's session.","When the LOWER function is used in a SELECT clause, the function only stays in effect for the duration of that SQL statement.","none of the above"],2);
+M("Which of the following format elements can be used to display the three-letter abbreviation for Wednesday?",["DDD","DD","DAY","DY"],3);
+M("What is the maximum number of columns or character strings that can be combined through a single CONCAT function?",["two","three","four","eight"],0);
+M("If a SELECT statement includes SUBSTR(TO_CHAR(SYSDATE, 'fmMONTH DD, YYYY'), -4, 4) in the SELECT clause, which of these functions will be executed first?",["TO_CHAR","SUBSTR","MONTH","YYYY"],0);
+M("Based upon the contents of the ORDERS table, which of the following will display the shipping location as: Shipcity, Shipstate Shipzip",["SELECT INITIALCAP(CONCAT(shipcity, shipstate, shipzip))\nFROM orders;","SELECT INITCAP(CONCAT(shipcity, CONCAT(', ', CONCAT(shipstate,\nCONCAT(' ', shipzip)))))\nFROM orders;","SELECT INITCAP((CONCAT(shipcity, shipstate, shipzip))\nFROM orders;","SELECT INITCAP(CONCAT(shipcity, CONCAT(', ', CONCAT(shipstate,\nCONCAT(' ', CONCAT(shipzip))))))\nFROM orders;"],1);
+M("Which of the following SQL statements will return an error message, based upon the contents of the CUSTOMERS table?",["SELECT CONCAT(firstname, lastname) FROM customers;","SELECT INITCAP(lastname), INITCAP(firstname) FROM customers;","SELECT LENGTH(customer#) FROM customers;","none of the above"],3);
+M("Which of the following functions can be used to specify a list of alternative actions that should be taken depending upon a stated value?",["DECODE","DCD","IFTHEN","SELECTIF"],0);
+M("Which of the following functions is used to determine the number of months between two date values?",["MONTH_BETWEEN","MONTHS_BETWEEN","MTH_BETWEEN","MNTH_BETWEEN"],1);
+M("Which of the following is used to return a portion of a character string?",["SUBSTR","SUBSTRING","PARTSTR","PORTION"],0);
+M("Which of the following returns one row of results for each record processed?",["single-row function","multiple-row function","aggregate function","all of the above"],0);
+M("Which of the following functions can be used to change the format of a date that has been entered by a user to the default storage format used by Oracle12c?",["TO_CHAR","TO_DATE","DEFAULT","DATE"],1);
+M("Which of the following functions determines the number of characters in a character string?",["COUNT","NUMBER","LENGTH","none of the above"],2);
+M("Which of the following format elements will display 1:00 p.m. as 13?",["HH","HR","HH24","24"],2);
+M("If the two values compared by the NULLIF function are equal, what value does the function return?",["The first value in the comparison","NULL","The second value in the comparison","Both values in the comparison"],1);
+M("Which of the following represents the number of days that have passed since January 1, 4712 B.C.?",["Cartesian date","Julian date","Extended date","none of the above"],1);
+M("When functions are nested, the ____ function is solved last.",["multiple-row","single-row","inner","outer"],3);
+M("Based upon the contents of the ORDERS table, which of the following SQL statements will display only those orders shipped to the zip code zone that begins with 323?",["SELECT order#, SUBSTR(shipzip, 1, 323)\nFROM orders;","SELECT order#, SUBSTR(shipzip, 1, 323)\nFROM orders\nWHERE shipzip = 323;","SELECT order#\nFROM orders\nWHERE shipzip = SUBSTR(shipzip, 1, 323);","SELECT order#\nFROM orders\nWHERE SUBSTR(shipzip, 1, 3) = 323;"],3);
+M("Which of the following format elements will display insignificant leading zeros?",["$999","0009999","99.999","9,999.990"],1);
+M("Which of the following will display the name of each customer in lower-case characters based upon the contents of the CUSTOMERS table?",["SELECT LOWER(name) FROM customers;","SELECT LOWER(firstname) || ' ' || LOWER(lastname) FROM customers;","SELECT CONCAT(LOWER(firstname), ' ', LOWER(lastname)) FROM customers;","none of the above"],1);
+M("Which of the following functions will truncate a numeric value to a specific position?",["TRUNCATE","TRUNC","TRUND","none of the above"],1);
+M("Which of the following functions will convert the first letter of each word to an upper-case letter and the remaining letters of the word to lower-case letters?",["INITIALCAPITAL","INITIALCAP","UPPERFIRST","none of the above"],3);
+M("Which of the following format elements will display the value of Friday in a specified date as a 6?",["D","DD","DDD","DAY"],0);
+var R3="Week 13 quiz (answer key)";
+function K(q,o,a){P(2,R3,q,o,a)}
+var R4="Week 14 quiz (answer key)";
+function F(q,o,a){P(3,R4,q,o,a)}
+function G(q,a){F(q,["True","False"],a?0:1)}
+F("The ____ operator indicates that the records processed by the outer query must match one of the values returned by the subquery.",["IN",">ANY","<ALL",">ALL"],0);
+F("If the result returned from a subquery must be compared to a group function, then the inner query must be nested in the outer query's ____ clause.",["GROUP BY","WHERE","HAVING","FROM"],2);
+G("A correlated subquery references one or more columns in the outer query, and the EXISTS operator is used to test whether the relationship or link is present.",1);
+F("Which of the following operators is the equivalent of the IN comparison operator?",["<ANY",">ANY","=ANY","=ALL"],2);
+F("The <ALL operator indicates that a value must be ____ value returned by the subquery.",["more than the highest","less than the highest","more than the lowest","less than the lowest"],3);
+G("A correlated subquery is one in which the inner query is executed first, and then the outer query is executed.",0);
+G("A(n) outer query is also referred to as a parent query.",1);
+F("Based on the contents of the BOOKS table, which of the following SQL statements will display the title of all books published by the publisher of SHORTEST POEMS?",["SELECT title FROM books WHERE pubid >ANY\n(SELECT pubid FROM books WHERE title = 'SHORTEST POEMS');","SELECT title FROM books WHERE pubid =ANY\nSELECT pubid FROM books WHERE title = 'SHORTEST POEMS';","SELECT title FROM books WHERE pubid IN\n(SELECT pubid, title FROM books WHERE title = 'SHORTEST POEMS');","none of the above"],3);
+F("The following SQL statement contains which type of subquery?\n\nSELECT title, retail, (SELECT AVG(retail) FROM books)\nFROM books;",["single-row","multiple-row","multiple-column","inline view"],0);
+G("The equal sign, =, is a valid single-row operator.",1);
+G("When the subquery is executed first and the value is passed back as input to the outer query, the subquery is known as an uncorrelated subquery.",1);
+F("Which clause is used when the group results of a subquery need to be restricted, based on some condition?",["GROUP BY","HAVING","WHERE","ORDER BY"],1);
+G("A subquery nested in a SELECT clause cannot contain an ORDER BY clause.",1);
+G("A(n) single-row subquery can be nested in a(n) SELECT clause.",1);
+G("The results of the outer query are passed to the inner query.",0);
+F("The <> operator is referred to as a(n) ____ operator.",["single-row","multiple row","multiple-column","correlated"],0);
+G("Valid multiple-row operators include =, >, <, >=, <=.",0);
+F("The results of a subquery are passed back as input to the ____ query.",["inner","outer","correlated","uncorrelated"],1);
+F("The > operator is referred to as a(n) ____ operator.",["multiple-row","multiple-column","single-row","none of the above"],2);
+G("The =ANY operator yields the same results as using the IN multiple-row operator.",1);
+G("A multiple-column subquery cannot be nested in a WHERE clause.",0);
+G("The IN operator can be used with single-row, multiple-row, or multiple-column subqueries.",1);
+G("The greater than operator, >, is a valid operator for multiple-row subqueries.",0);
+F("An outer query is also referred to as a(n) ____ query.",["parent query","outer view","outline view","all of the above"],0);
+G("The EXISTED operator is used to determine whether a condition is present in a subquery.",0);
+var R10="Ch. 10 practice set (answers worked out by me)";
+function N(q,o,a,e){P(1,R10,q,o,a,e)}
+var R11="Ch. 11 practice set (answers worked out by me)";
+function V(q,o,a,e){P(2,R11,q,o,a,e)}
+var SQ="SELECT customer#, COUNT(*)\nFROM customers JOIN orders USING(customer#)\nWHERE orderdate > '02-APR-09'\nGROUP BY customer#\nHAVING COUNT(*) > 2;";
+var LN="\n\nLines: 1 SELECT, 2 FROM, 3 WHERE, 4 GROUP BY, 5 HAVING\n\n"+SQ;
+V("Which of the following statements is true?",["The MIN function can be used only with numeric data.","The MAX function can be used only with date values.","The AVG function can be used only with numeric data.","The SUM function can't be part of a nested function."],2);
+V("Which of the following is a valid SELECT statement?",["SELECT AVG(retail-cost)\nFROM books\nGROUP BY category;","SELECT category, AVG(retail-cost)\nFROM books;","SELECT category, AVG(retail-cost)\nFROM books\nWHERE AVG(retail-cost) > 8.56\nGROUP BY category;","SELECT category, AVG(retail-cost) Profit\nFROM books\nGROUP BY category\nHAVING profit > 8.56;"],0,"B is missing GROUP BY, C uses a group function in WHERE, and D uses a column alias in HAVING.");
+V("Which of the following statements is correct?",["The WHERE clause can contain a group function only if the function isn't also listed in the SELECT clause.","Group functions can't be used in the SELECT, FROM, or WHERE clauses.","The HAVING clause is always processed before the WHERE clause.","The GROUP BY clause is always processed before the HAVING clause."],3);
+V("Which of the following is not a valid SQL statement?",["SELECT MIN(pubdate)\nFROM books\nGROUP BY category\nHAVING pubid = 4;","SELECT MIN(pubdate)\nFROM books\nWHERE category = 'COOKING';","SELECT COUNT(*)\nFROM orders\nWHERE customer# = 1005;","SELECT MAX(COUNT(customer#))\nFROM orders\nGROUP BY customer#;"],0,"HAVING can only reference grouped columns or group functions; pubid is neither.");
+V("Which of the following statements is correct?",["The COUNT function can be used to determine how many rows contain a NULL value.","Only distinct values are included in group functions, unless the ALL keyword is included in the SELECT clause.","The HAVING clause restricts which rows are processed.","The WHERE clause determines which groups are displayed in the query results.","none of the above"],4);
+V("Which of the following is a valid SQL statement?",["SELECT customer#, order#, MAX(shipdate-orderdate)\nFROM orders\nGROUP BY customer#\nWHERE customer# = 1001;","SELECT customer#, COUNT(order#)\nFROM orders\nGROUP BY customer#;","SELECT customer#, COUNT(order#)\nFROM orders\nGROUP BY COUNT(order#);","SELECT customer#, COUNT(order#)\nFROM orders\nGROUP BY order#;"],1);
+V("Which of the following SELECT statements lists only the book with the largest profit?",["SELECT title, MAX(retail-cost)\nFROM books\nGROUP BY title;","SELECT title, MAX(retail-cost)\nFROM books\nGROUP BY title\nHAVING MAX(retail-cost);","SELECT title, MAX(retail-cost)\nFROM books;","none of the above"],3,"Finding the single largest profit requires a subquery.");
+V("Which of the following is correct?",["A group function can be nested inside a group function.","A group function can be nested inside a single-row function.","A single-row function can be nested inside a group function.","a and b","a, b, and c"],4);
+V("Which of the following functions is used to calculate the total value stored in a specified column?",["COUNT","MIN","TOTAL","SUM","ADD"],3);
+V("Which of the following SELECT statements lists the highest retail price of all books in the Family category?",["SELECT MAX(retail)\nFROM books\nWHERE category = 'FAMILY';","SELECT MAX(retail)\nFROM books\nHAVING category = 'FAMILY';","SELECT retail\nFROM books\nWHERE category = 'FAMILY'\nHAVING MAX(retail);","none of the above"],0);
+V("Which of the following functions can be used to include NULL values in calculations?",["SUM","NVL","MAX","MIN"],1);
+V("Which of the following is not a valid statement?",["You must enter the ALL keyword in a group function to include all duplicate values.","The AVG function can be used to find the average calculated difference between two dates.","The MIN and MAX functions can be used on any type of data.","all of the above","none of the above"],0,"ALL is the default, so you don't have to enter it.");
+V("Which of the following SQL statements determines how many total customers were referred by other customers?",["SELECT customer#, SUM(referred)\nFROM customers\nGROUP BY customer#;","SELECT COUNT(referred)\nFROM customers;","SELECT COUNT(*)\nFROM customers;","SELECT COUNT(*)\nFROM customers\nWHERE referred IS NULL;"],1,"COUNT(column) skips NULLs, so it counts only referred customers.");
+V("Which line of the SELECT statement is used to restrict the number of records the query processes?"+LN,["1","3","4","5"],1);
+V("Which line of the SELECT statement is used to restrict groups displayed in the query results?"+LN,["1","3","4","5"],3);
+V("Which line of the SELECT statement is used to group data stored in the database?"+LN,["1","3","4","5"],2);
+V("Because the SELECT clause contains the customer# column, which clause must be included for the query to execute successfully?"+LN,["1","3","4","5"],2);
+V("The COUNT(*) function in the SELECT clause is used to return:"+LN,["the number of records in the specified tables","the number of orders placed by each customer","the number of NULL values in the specified tables","the number of customers who have placed an order"],1);
+V("Which of the following functions can be used to determine the earliest ship date for all orders recently processed by JustLee Books?",["COUNT function","MAX function","MIN function","STDDEV function","VARIANCE function"],2);
+V("Which of the following is not a valid SELECT statement?",["SELECT STDDEV(retail)\nFROM books;","SELECT AVG(SUM(retail))\nFROM orders NATURAL JOIN orderitems NATURAL JOIN books\nGROUP BY customer#;","SELECT order#, TO_CHAR(SUM(retail), '999.99')\nFROM orderitems JOIN books USING(isbn)\nGROUP BY order#;","SELECT title, VARIANCE(retail-cost)\nFROM books\nGROUP BY pubid;"],3,"title is in the SELECT list but not in the GROUP BY.");
+N("Which of the following is a valid SQL statement?",["SELECT SYSDATE;","SELECT UPPER(Hello) FROM dual;","SELECT TO_CHAR(SYSDATE, 'Month DD, YYYY') FROM dual;","all of the above","none of the above"],2,"A has no FROM clause, and B has an unquoted string.");
+N("Which of the following functions can be used to extract a portion of a character string?",["EXTRACT","TRUNC","SUBSTR","INITCAP"],2);
+N("Which of the following determines how long ago orders that haven't shipped were received?",["SELECT order#, shipdate-orderdate delay\nFROM orders;","SELECT order#, SYSDATE - orderdate\nFROM orders\nWHERE shipdate IS NULL;","SELECT order#, NVL(shipdate, 0)\nFROM orders\nWHERE orderdate is NULL;","SELECT order#, NULL(shipdate)\nFROM orders;"],1);
+N("Which of the following SQL statements produces \"Hello World\" as the output?",["SELECT \"Hello World\" FROM dual;","SELECT INITCAP('HELLO WORLD') FROM dual;","SELECT LOWER('HELLO WORLD') FROM dual;","both a and b","none of the above"],1);
+N("Which of the following functions can be used to substitute a value for a NULL value?",["NVL","TRUNC","NVL2","SUBSTR","both a and d","both a and c"],5);
+N("Which of the following is not a valid format argument for displaying the current time?",["'HH:MM:SS'","'HH24:SS'","'HH12:MI:SS'","All of the above are valid."],0,"MM is the month element; minutes are MI.");
+N("Which of the following lists only the last four digits of the contact person's phone number at American Publishing?",["SELECT EXTRACT(phone, -4, 1)\nFROM publisher\nWHERE name = 'AMERICAN PUBLISHING';","SELECT SUBSTR(phone, -4, 1)\nFROM publisher\nWHERE name = 'AMERICAN PUBLISHING';","SELECT EXTRACT(phone, -1, 4)\nFROM publisher\nWHERE name = 'AMERICAN PUBLISHING';","SELECT SUBSTR(phone, -4, 4)\nFROM publisher\nWHERE name = 'AMERICAN PUBLISHING';"],3);
+N("Which of the following functions can be used to determine how many months a book has been available?",["MONTH","MON","MONTH_BETWEEN","none of the above"],3,"The real function is MONTHS_BETWEEN (plural).");
+N("Which of the following displays the order date for order 1000 as 03/31?",["SELECT TO_CHAR(orderdate, 'MM/DD')\nFROM orders\nWHERE order# = 1000;","SELECT TO_CHAR(orderdate, 'Mth/DD')\nFROM orders\nWHERE order# = 1000;","SELECT TO_CHAR(orderdate, 'MONTH/YY')\nFROM orders\nWHERE order# = 1000;","both a and b","none of the above"],0);
+N("Which of the following functions can produce different results, depending on the value of a specified column?",["NVL","DECODE","UPPER","SUBSTR"],1);
+N("Which of the following SQL statements is not valid?",["SELECT TO_CHAR(orderdate, '99/9999')\nFROM orders;","SELECT INITCAP(firstname), UPPER(lastname)\nFROM customers;","SELECT cost, retail,\nTO_CHAR(retail-cost, '$999.99') profit\nFROM books;","all of the above"],0,"'99/9999' is a number format, not valid for a date.");
+N("Which function can be used to add spaces to a column until it's a specific width?",["TRIML","PADL","LWIDTH","none of the above"],3,"The real functions are LPAD and RPAD.");
+N("Which of the following SELECT statements returns 30 as the result?",["SELECT ROUND(24.37, 2) FROM dual;","SELECT TRUNC(29.99, 2) FROM dual;","SELECT ROUND(29.01, -1) FROM dual;","SELECT TRUNC(29.99, -1) FROM dual;"],2);
+N("Which of the following is a valid SQL statement?",["SELECT TRUNC(ROUND(125.38, 1), 0) FROM dual;","SELECT ROUND(TRUNC(125.38, 0) FROM dual;","SELECT LTRIM(LPAD(state, 5, ' '), 4, -3, \"*\") FROM dual;","SELECT SUBSTR(ROUND(14.87, 2, 1), -4, 1) FROM dual;"],0);
+N("Which of the following functions can't be used to convert the letter case of a character string?",["UPPER","LOWER","INITIALCAP","All of the above can be used for case conversion."],2,"The real function is INITCAP.");
+N("Which of the following format elements causes months to be displayed as a three-letter abbreviation?",["MMM","MONTH","MON","none of the above"],2);
+N("Which of the following SQL statements displays a customer's name in all uppercase characters?",["SELECT UPPER('firstname', 'lastname')\nFROM customers;","SELECT UPPER(firstname, lastname)\nFROM customers;","SELECT UPPER(lastname, ',' firstname)\nFROM customers;","none of the above"],3,"UPPER takes a single argument.");
+N("Which of the following functions can be used to display the character string FLORIDA in the query results whenever FL is entered in the State field?",["SUBSTR","NVL2","REPLACE","TRUNC","none of the above"],2);
+N("What's the name of the table provided by Oracle 12c for completing queries that don't involve a table?",["DUMDUM","DUAL","ORAC","SYS"],1);
+N("If an integer is multiplied by a NULL value, the result is:",["an integer","a whole number","a NULL value","None of the above—a syntax error message is returned."],2);
+K("The ____ function can be used to determine the number of rows containing a specified value.",["TOTAL","SUM","COUNT","ADD"],2);
+K("Based upon the contents of the BOOKS table, which of the following will determine the number of books provided by publisher 3?",["SELECT SUM(isbn)\nFROM books\nWHERE pubid = 3;","SELECT TOTAL(*)\nFROM books\nWHERE pubid = 3;","SELECT COUNT(pubid)\nFROM books\nWHERE pubid = 3;","none of the above"],2);
+K("Which of the following is a valid SQL statement? (All four use FROM orders JOIN orderitems ON orders.order# = orderitems.order# JOIN books ON orderitems.ISBN = books.ISBN; shown here without that line.)",["SELECT SUM(quantity*retail) \"Total Sales\"\nWHERE orderdate = '02-APR-03';","SELECT SUM(quantity*retail) \"Total Sales\"\nHAVING orderdate = '02-APR-03';","SELECT customer#, SUM(quantity*retail) \"Total Sales\"\nHAVING orderdate = '02-APR-03';","SELECT customer#, SUM(quantity*retail) \"Total Sales\"\nHAVING orderdate = '02-APR-03'\nGROUP BY customer#;"],0);
+K("Which of the following is a valid statement?",["The ORDER BY clause cannot be used in a SELECT statement containing a GROUP BY clause.","Data returned from a GROUP BY clause will automatically be sorted in descending order.","Column aliases cannot be used in a GROUP BY clause.","Columns referenced in the GROUP BY clause must also be contained in the SELECT clause."],2);
+K("The ____ function is used to calculate the total amount stored in a numeric field.",["TOTAL","SUM","AVERAGE","ADD"],1);
+K("The ____ clause is used to indicate that groups should be created.",["ORDER BY","GROUP BY","AGGREGATED","GROUPING"],1);
+K("The VARIANCE function can be used with ____ columns.",["alphanumeric","numeric","date","none of the above"],1);
+K("A group function can be nested inside a(n) ____.",["group function","single-row function","order function","both a and b"],3);
+K("Which of the following cannot be used with date columns?",["MIN","MAX","AVG","all of the above"],2);
+K("A(n) ____ clause cannot include a group function.",["WHERE","HAVING","SELECT","both a and c"],0);
+K("The ____ function is based upon the concept of a normal distribution.",["MIN","MAX","SUM","STDDEV"],3);
+K("Which of the following is a valid statement?",["A single-row function can be nested inside a group function.","Group functions can be nested inside other group functions.","Group functions can be nested inside single-row functions.","all of the above"],3);
+K("Which of the following is not considered a group function?",["TRUNC","MIN","COUNT","SUM"],0);
+K("Which of the following is not a GROUP BY extension?",["ROLLUP","CUBE","OLAP","All of the above are extensions"],2);
+K("Which of the following SQL statements will return the number of different publishers represented in the BOOKS table?",["SELECT COUNT(DISTINCT pubid) FROM books;","SELECT DISTINCT COUNT(pubid) FROM books;","SELECT DISTINCT (COUNT(pubid)) FROM books;","SELECT (DISTINCT COUNT(pubid)) FROM books;"],0);
+K("If a SELECT statement contains HAVING, GROUP BY, and WHERE clauses, the ____ clause will be processed last.",["HAVING","GROUP BY","WHERE","SELECT"],0);
+K("Which of the following will display the date of the book with the earliest publication date?",["SELECT MIN(pubdate)\nFROM books;","SELECT title\nFROM books\nWHERE pubdate = MIN(pubdate);","SELECT title\nFROM books\nWHERE pubdate = MINIMUM(pubdate);","SELECT MINIMUM(pubdate)\nFROM books;"],0);
+K("The ____ function can be used to determine the largest value stored in a specified column.",["MAXIMUM","MAX","LARGE","LARGEST"],1);
+K("If the DISTINCT keyword is not included in the VARIANCE function, the ____ keyword will be assumed.",["UNIQUE","ALL","NULLS ONLY","NONULLS"],1);
+K("Which of the following can be used with character data?",["MIN","MAX","COUNT","all of the above"],3);
+K("The MIN function can be used with ____ columns.",["numeric","character","date","all of the above"],3);
+K("The ____ function calculates the standard deviation for a specific set of data.",["STDDEVIATION","STD","STDDEV","STANDARDDEV"],2);
+K("If a SELECT statement contains HAVING, GROUP BY, and WHERE clauses, the ____ clause will be processed first.",["HAVING","GROUP BY","WHERE","ORDER BY"],2);
+K("The ____ function calculates the average of the numeric values in a specified column.",["AVG","AVERAGE","MEAN","AG"],0);
+K("The SUM function can only be used with ____ data.",["numeric","character","date","alphanumeric"],0);
+T("The TO_CHAR function can be used to display insignificant zeros.",1);
+M("Which of the following functions can be used to convert a character string to upper-case letters?",["UPPER","UP","UPPERCASE","UPPERCAP"],0);
+T("The REPLACE function is used to substitute one character string for another character string in a set of data.",1);
+T("The LPAD or RPAD function can be used to add a character to extend the current contents of a column to a specified width.",1);
+T("The INITIALCAP function can be used to convert character strings to mixed-case characters.",0);
+M("Which of the following statements will display the value of FL assigned to the state column as FLORIDA?",["SELECT customer#, city, SUBSTR(state, 'FL', 'FLORIDA')\nFROM customers\nWHERE state = 'FL';","SELECT customer#, city, SUBSTR('FL', 'FLORIDA')\nFROM customers\nWHERE state = 'FL';","SELECT customer#, city, REPLACE('FL', 'FLORIDA')\nFROM customers\nWHERE state = 'FL';","SELECT customer#, city, REPLACE(state, 'FL', 'FLORIDA')\nFROM customers\nWHERE state = 'FL';"],3);
+T("A Julian date represents the number of hours that have passed since January 1, 4712 B.C.",0);
+M("Which of the following is a valid SQL statement based upon the contents of the CUSTOMERS table?",["SELECT INITCAP(firstname, lastname) FROM customers;","SELECT LENGTH (city, state, zip) FROM customers;","SELECT customer#, NVL2(referred, 'Referred', 'Not Referred') FROM customers;","SELECT INITCAP((firstname),( lastname)) FROM customers;"],2);
+T("A positive number is used in the ROUND function to indicate that numeric data should be rounded to the indicated position to the right of the decimal point.",1);
+M("Based upon the contents of the ORDERS table, which of the following SQL statements will display the number of days between the date an order was placed and the date it was shipped?",["SELECT order#, TO_CHAR(shipdate-orderdate, '99') FROM orders\nWHERE shipdate IS NOT NULL;","SELECT order#, MONTHS_BETWEEN(shipdate-orderdate, '99') FROM orders\nWHERE shipdate IS NOT NULL;","SELECT order#, ADD_MONTHS(shipdate-orderdate, '99') FROM orders\nWHERE shipdate IS NOT NULL;","SELECT order#, DAYS_BETWEEN(shipdate-orderdate, '99') FROM orders\nWHERE shipdate IS NOT NULL;"],0);
+M("Which of the following functions can be used to substitute another value for a NULL value during calculations?",["NVL","NULLVAL","NULVAL","NLV"],0);
+M("Which of the following functions will round the numeric data to no decimal places?",["ROUND(34.21, 1)","ROUND(34.21, -1)","ROUND(34.21, NONE)","ROUND(34.21, 0)"],3);
+T("The NEXT_DAY function is used to determine the next occurrence of a specific day of the week that will occur after the specified date.",1);
+T("Any of the single-row functions covered in this chapter can be used with the DUAL table.",1);
+T("The LOWER function can be used to display upper-case characters in lower-case.",1);
+M("Which of the following is a table provided in Oracle which can be helpful for testing functions?",["DUMMY","DUM","DUAL","EMPTY"],2);
+M("The phonetic representation of a character string can be determined using the ____ function.",["SOUND","PHONETIC","SOUNDEX","SOUNDINDEX"],2);
+T("To calculate the difference between two date columns, you must use the TO_DATE function.",0);
+T("A single-row function can be used with the DUAL table.",1);
+T("The NULLIF function is often combined with the NVL2 function to display a descriptive status.",0);
+T("The SUBSTR function is used to substitute one character string for another in a set of data.",0);
+T("Include DAY in a format argument of the TO_CHAR function to spell out the day of the week in the specified date.",1);
+T("Character functions can be used to change the case of characters or to manipulate characters.",1);
+M("Which of the following format argument elements will display the number of seconds past midnight?",["SS","SSSS","MI:SS","MI"],1);
+T("The format argument in the TO_CHAR function must be enclosed in double quotation marks.",0);
+T("The NEXT_DATE function is used to determine the next occurrence of a specific day of the week after a given date.",0);
+T("You must include the MI element in the format argument of a TO_CHAR function to include the minutes when displaying time.",1);
+T("Single-row functions return one row of results for each group or category of rows processed.",0);
+M("Which of the following statements will produce the value 21.1?",["SELECT ROUND(21.12, 1) FROM dual;","SELECT ROUND(21.12, -1) FROM dual;","SELECT ROUND(21.12, 0) FROM dual;","none of the above"],0);
+M("Which of the following functions is similar to using the (||) symbol to combine the contents of two character strings?",["CONCAT","CONCATENATION","CAT","CONCATEN"],0);
+T("The TO_CHAR function can be used to add a dollar sign ($) to a numeric value.",1);
+T("The YR element can be included in a format argument of the TO_CHAR function to spell out the year of the specified date.",0);
+M("Based upon the contents of the CUSTOMERS table, which of the following will display the shipping location as: City, State Zip",["SELECT INITCAP(CONCAT(city, CONCAT(', ', CONCAT(state,\nCONCAT(' ', zip)))))\nFROM customers;","SELECT CONCAT(city, CONCAT(', ', CONCAT(state,\nCONCAT(' ', CONCAT(zip)))))\nFROM customers;","SELECT INITCAP(CONCAT(city, ', ', state, ' ', zip))\nFROM customers;","none of the above"],0);
+T("A Julian date is the number of days that have passed between a specific date and January 1, 4712 B.C.",1);
+M("Which of the following functions can be used to fill a character string to a specific width?",["LPAD","RPAD","LFILL","both a and b"],3);
+M("Which of the following functions can be used to determine the next occurrence of a specific day of the week after a given date?",["NEXT_DATE","DATE_NEXT","NEXT_DAY","NEXT_DDD"],2);
+M("The ____ function can be used to convert dates and numbers to a formatted character string.",["TO_DATE","CONVERT","FORMATMODEL","TO_CHAR"],3);
+M("When functions are nested, the ____ function is solved first.",["single-row","multiple-row","inner","outer"],2);
+M("Which of the following refers to a predefined block of code?",["parameters","arguments","functions","syntax"],2);
+M("Based upon the contents of the ORDERS table, which of the following SQL statements will display the ship date for order 1006 as April 2, 2002?",["SELECT order#, TO_CHAR(shipdate, 'Month DD, YYYY')\nFROM orders;","SELECT order#, TO_DATE(shipdate, 'Month DD, YYYY')\nFROM orders;","SELECT order#, TO_CHAR(shipdate, 'Month DY, YYYY')\nFROM orders;","SELECT order#, TO_DATE(shipdate, 'Month DY, YYYY')\nFROM orders;"],0);
+M("Which of the following functions allows for different options, depending upon whether a NULL value exists?",["NVL","IFNL","IFNVL","NVL2"],3);
+T("The SOUND function is used to determine the phonetic representation of a character string.",0);
+T("To indicate that the numeric value of the day of the year for a date is being specified, include DAY in format argument of the TO_DATE function.",0);
+M("Which of the following functions can be used to remove a specific set of characters from the left side of a set of data values?",["LTRIM","RTRIM","FULLTRIM","both a and b"],0);
+T("Only a DATE function can be nested inside another DATE function.",0);
+M("Which of the following functions can be used to determine the date one month after a specified date?",["ADD_MONTH","ADD_MONTHS","ONE_MONTH","NEXT_MONTH"],1);
+T("Use MON in the format argument to spell out the specified month.",0);
+T("The INSTR function is used to return a portion of a character string.",0);
+M("When a format argument is included in a function, it must be enclosed in ____.",["single quotation marks","double quotation marks","parentheses","percent signs"],0);
+M("Which of the following functions can be used to convert a character string to lower-case letters?",["LOW","LOWER","SMALLER","SMALLCAP"],1);
+var W="Week 10 quiz (answer key)",C="Ch. 9 practice set (answers worked out by me)";
+P(0,W,"The outer join operator in the WHERE clause cannot be used with which of the following operators?",["AND","OR","IN","both a and b"],3);
+P(0,W,"Which of the following set operators will display the results of the combined SQL statements without suppressing duplicate rows?",["UNION","MINUS","UNION ALL","INTERSECT"],2);
+P(0,W,"Which of the following set operators can be used to make certain that only the rows returned by both queries are displayed in the results?",["UNION","MINUS","UNION ALL","INTERSECT"],3);
+P(0,W,"Which of the following can only be used to link tables that have a common column?",["FULL OUTER JOIN","CROSS JOIN","JOIN...ON","NATURAL JOIN"],3);
+P(0,W,"Which of the following queries will return the same results as the following SQL statement?\n\nSELECT c.customer#, lastname, firstname, order#\nFROM customers c, orders o\nWHERE c.customer# = o.customer#;",["SELECT customer#, lastname, firstname, order#\nFROM customers NATURAL JOIN orders;","SELECT customer#, lastname, firstname, order#\nFROM customers JOIN orders USING (customer#);","both a and b","SELECT c.customer#, lastname, firstname, order#\nFROM customers c, orders o;"],2);
+P(0,W,"Which of the following keywords is used to create an equality join?",["JOIN...USING","JOIN...ON","all of the above","NATURAL JOIN"],2);
+P(0,W,"Which of the following SQL statements will display all customers who have not recently placed an order?",["SELECT customer# FROM customers\nMINUS\nSELECT customer# FROM orders;","SELECT customer# FROM customers\nUNION\nSELECT customer# FROM orders;","SELECT customer# FROM orders\nMINUS\nSELECT customer# FROM customers;","SELECT customer# FROM orders\nINTERSECT\nSELECT customer# FROM customers;"],0);
+P(0,W,"A table alias can consist of a maximum of ____ characters.",["225","12","30","255"],2);
+P(0,W,"Which of the following SQL statements will display the title of all books that have had multiple copies requested in a single order?",["SELECT title\nFROM books JOIN orderitems\nWHERE qty > 1;","SELECT title\nFROM books JOIN orderitems USING(isbn);","SELECT title\nFROM books JOIN orderitems ON (isbn) JOIN orders ON (order#)\nWHERE qty>1;","SELECT title\nFROM books NATURAL JOIN orderitems\nWHERE qty > 1;"],3);
+P(0,W,"Which of the following is used to create an outer join in a WHERE clause?",["FULL OUTER JOIN keywords","outer join operator (+)","RIGHT OUTER JOIN keywords","LEFT OUTER JOIN keywords"],1);
+P(0,W,"Which of the following types of joins is created by matching equivalent values in each table?",["outer join","non-equality join","equality join","Cartesian join"],2);
+P(0,W,"Which of the following SQL statements will display the title of each book in the BOOKS table and the name of its publisher?",["SELECT title, name\nFROM publisher NATURAL JOIN books;","both b and c","SELECT title, name\nFROM publisher, books\nWHERE p.pubid = b.pubid;","SELECT title, name\nFROM publisher, books;"],0);
+P(0,W,"Which of the following is a valid SQL statement?",["SELECT c.customer#, order#, orderdate, shipdate\nFROM customers c NATURAL JOIN orders c;","SELECT c.customer#, order#, orderdate, shipdate\nFROM customers c, orders o\nWHERE c.customer# = o.customer#;","both b and c","SELECT * FROM customers JOIN orders ON (customer#);"],1,"Per the answer key, B is the correct choice (it is the one with a proper join condition).");
+P(0,W,"Which of the following SQL statements will display the publisher name, book title, and retail price of all books that cost more than $35.95?",["none of the above","SELECT name, title, retail\nFROM books, publisher\nWHERE cost > 35.95;","SELECT name, title, retail\nFROM books NATURAL JOIN publisher\nWHERE cost > 35.95;","SELECT p.name, b.title, b.retail\nFROM books b NATURAL JOIN publisher p\nWHERE b.cost > 35.95;"],2);
+P(0,W,"Which of the following is an example of assigning \"o\" as a table alias for the ORDERS table in the FROM clause?",["FROM orders o, customers c","FROM orders.o, customers.c","FROM o.orders, c.customers","FROM o orders, c customers"],0);
+P(0,W,"If you are attempting to join two tables that have multiple common columns, which of the following JOIN keywords should be used to specify how the tables should be linked?",["CROSS JOIN","JOIN...USING","OUTER JOIN","none of the above"],1);
+P(0,W,"Which of the following SQL statements will list the name of each customer stored in the CUSTOMERS table, and, if the customer has placed an order that is contained in the ORDERS table, the order# of any order each customer has placed?",["SELECT lastname, firstname, order#\nFROM customers, orders\nWHERE orders.customer# = customers.customer# (+);","SELECT lastname, firstname, order#\nFROM customers NATURAL JOIN orders\nWHERE orders.customer# IS NULL;","SELECT lastname, firstname, order#\nFROM customers, orders\nWHERE orders.customer# (+) = customers.customer#;","SELECT lastname, firstname, order#\nFROM customers NATURAL JOIN orders\nWHERE orders.customer# IS NOT NULL;"],2);
+P(0,W,"Which of the following terms refers to a column with equivalent data that exists in two or more tables?",["common column","inner columns","simple columns","equiv-column"],0);
+P(0,W,"In a Cartesian join, linking a table that contains 10 rows to a table that contains 9 rows will result in ____ rows being displayed in the output.",["89","18","19","90"],3);
+P(0,W,"A join based upon a column from each table containing equivalent data is known as a(n) ____.",["outer join","equality join","all of the above","inequality join"],1);
+P(0,W,"To display the name of each customer and the title of each book purchased by the customers would require how many join conditions? (CUSTOMERS, ORDERS, ORDERITEMS, BOOKS)",["3","4","1","2"],0);
+P(0,W,"A(n) ____ is used to combine the results of two queries.",["logical operator","set operator","concatenation operator","comparison operator"],1);
+P(0,W,"Which of the following SQL statements will return the names of all customers who placed an order on April 12, 2003?",["SELECT lastname, firstname\nFROM customers\nWHERE orderdate = '12-APR-03';","both a and b","SELECT lastname, firstname\nFROM customers JOIN orders ON (customer#)\nWHERE orderdate = '12-APR-03';","SELECT lastname, firstname\nFROM customers NATURAL JOIN orders\nWHERE orderdate = '12-APR-03';"],3);
+P(0,W,"How many joining conditions will be required in an SQL statement that is used to determine the gift that corresponds to each book in the BOOKS table? (PROMOTION, BOOKS, ORDERITEMS)",["1","4","3","2"],0);
+P(0,W,"Which of the following queries will display data from both the ORDERS and CUSTOMERS tables?",["SELECT lastname, firstname, order#\nFROM orders, customers\nWHERE orders.customer# = customers.customer#;","all of the above","SELECT * FROM orders, customers;","SELECT lastname, firstname, order#\nFROM orders NATURAL JOIN customers;"],1);
+P(0,C,"Which of the following queries creates a Cartesian join?",["SELECT title, authorid\nFROM books, bookauthor;","SELECT title, name\nFROM books CROSS JOIN publisher;","SELECT title, gift\nFROM books NATURAL JOIN promotion;","all of the above"],3,"A join with no join condition, a CROSS JOIN, and a NATURAL JOIN with no common columns all produce a Cartesian product.");
+P(0,C,"Which of the following operators is not allowed in an outer join?",["AND","=","OR",">"],2,"With the (+) operator, a condition can't be combined using OR (or IN).");
+P(0,C,"Which of the following queries contains an equality join?",["SELECT title, authorid\nFROM books, bookauthor\nWHERE books.isbn = bookauthor.isbn\nAND retail > 20;","SELECT title, name\nFROM books CROSS JOIN publisher;","SELECT title, gift\nFROM books, promotion\nWHERE retail >= minretail\nAND retail <= maxretail;","none of the above"],0);
+P(0,C,"Which of the following queries contains a non-equality join?",["SELECT title, authorid\nFROM books, bookauthor\nWHERE books.isbn = bookauthor.isbn\nAND retail > 20;","SELECT title, name\nFROM books JOIN publisher\nUSING (pubid);","SELECT title, gift\nFROM books, promotion\nWHERE retail >= minretail\nAND retail <= maxretail;","none of the above"],2,"The join between retail and a range (minretail/maxretail) uses comparison operators other than =.");
+P(0,C,"The following SQL statement contains which type of join?\n\nSELECT title, order#, quantity\nFROM books FULL JOIN orderitems\nON books.isbn = orderitems.isbn;",["equality","self-join","non-equality","outer join"],3);
+P(0,C,"Which of the following queries is valid?",["SELECT b.title, b.retail, o.quantity\nFROM books b NATURAL JOIN orders od\nNATURAL JOIN orderitems o\nWHERE od.order# = 1005;","SELECT b.title, b.retail, o.quantity\nFROM books b, orders od, orderitems o\nWHERE orders.order# = orderitems.order#\nAND orderitems.isbn = books.isbn\nAND od.order# = 1005;","SELECT b.title, b.retail, o.quantity\nFROM books b, orderitems o\nWHERE o.isbn = b.isbn\nAND o.order# = 1005;","none of the above"],2,"A joins books to orders with no common column; B uses full table names after aliasing them.");
+P(0,C,"Given: SELECT zip, order#\nFROM customers NATURAL JOIN orders;\n\nWhich of the following queries is equivalent?",["SELECT zip, order#\nFROM customers JOIN orders\nWHERE customers.customer# = orders.customer#;","SELECT zip, order#\nFROM customers, orders\nWHERE customers.customer# = orders.customer#;","SELECT zip, order#\nFROM customers, orders\nWHERE customers.customer# = orders.customer# (+);","none of the above"],1);
+P(0,C,"Which line in the following SQL statement raises an error?\n\n1. SELECT name, title\n2. FROM books NATURAL JOIN publisher\n3. WHERE category = 'FITNESS'\n4. OR\n5. books.pubid = 4;",["line 1","line 2","line 3","line 4","line 5"],4,"With NATURAL JOIN, the join column (pubid) can't be qualified with a table name.");
+P(0,C,"Given: SELECT lastname, firstname, order#\nFROM customers LEFT OUTER JOIN orders\nUSING (customer#)\nORDER BY customer#;\n\nWhich of the following queries returns the same results?",["SELECT lastname, firstname, order#\nFROM customers c OUTER JOIN orders o\nON c.customer# = o.customer#\nORDER BY c.customer#;","SELECT lastname, firstname, order#\nFROM orders o RIGHT OUTER JOIN customers c\nON c.customer# = o.customer#\nORDER BY c.customer#","SELECT lastname, firstname, order#\nFROM customers c, orders o\nWHERE c.customer# = o.customer# (+)\nORDER BY c.customer#;","none of the above"],1,"B is the mirror-image RIGHT OUTER JOIN. Note that C is also logically equivalent; if your key differs, go with your instructor's.");
+P(0,C,"Given: SELECT DISTINCT zip, category\nFROM customers NATURAL JOIN orders NATURAL JOIN orderitems\nNATURAL JOIN books;\n\nWhich of the following queries is equivalent?",["SELECT zip FROM customers\nUNION\nSELECT category FROM books;","SELECT DISTINCT zip, category\nFROM customers c, orders o, orderitems oi, books b\nWHERE c.customer# = o.customer# AND o.order# = oi.order#\nAND oi.isbn = b.isbn;","SELECT DISTINCT zip, category\nFROM customers c JOIN orders o\nJOIN orderitems oi JOIN books b\nON c.customer# = o.customer#\nAND o.order# = oi.order#\nAND oi.isbn = b.isbn;","all of the above","none of the above"],1);
+P(0,C,"Which line in the following SQL statement raises an error?\n\n1. SELECT name, title\n2. FROM books JOIN publisher\n3. WHERE books.pubid = publisher.pubid\n4. AND\n5. cost < 45.95",["line 1","line 2","line 3","line 4","line 5"],2,"A JOIN needs an ON or USING clause; Oracle flags the WHERE where it expected one.");
+P(0,C,"Given: SELECT title, gift\nFROM books CROSS JOIN promotion;\n\nWhich of the following queries is equivalent?",["SELECT title, gift\nFROM books NATURAL JOIN promotion;","SELECT title\nFROM books\nINTERSECT\nSELECT gift\nFROM promotion;","SELECT title\nFROM books\nUNION ALL\nSELECT gift\nFROM promotion;","all of the above"],0,"BOOKS and PROMOTION share no common column, so a NATURAL JOIN becomes a Cartesian product.");
+P(0,C,"If the CUSTOMERS table contains seven records and the ORDERS table has eight records, how many records does the following query produce?\n\nSELECT *\nFROM customers CROSS JOIN orders;",["0","8","7","15","56"],4,"7 x 8 = 56.");
+P(0,C,"Which of the following SQL statements is not valid?",["SELECT b.isbn, p.name\nFROM books b NATURAL JOIN publisher p;","SELECT isbn, name\nFROM books b, publisher p\nWHERE b.pubid = p.pubid;","SELECT isbn, name\nFROM books b JOIN publisher p\nON b.pubid = p.pubid;","SELECT isbn, name\nFROM books JOIN publisher\nUSING (pubid);","None—all the above are valid SQL statements."],4);
+P(0,C,"Which of the following lists all books published by the publisher named Printing Is Us?",["SELECT title\nFROM books NATURAL JOIN publisher\nWHERE name = 'PRINTING IS US';","SELECT title\nFROM books, publisher\nWHERE pubname = 1;","SELECT *\nFROM books b, publisher p\nJOIN tables ON b.pubid = p.pubid\nWHERE name = 'PRINTING IS US';","none of the above"],0);
+P(0,C,"Which of the following SQL statements is not valid?",["SELECT isbn\nFROM books\nMINUS\nSELECT isbn\nFROM orderitems;","SELECT isbn, name\nFROM books, publisher\nWHERE books.pubid (+) = publisher.pubid (+);","SELECT title, name\nFROM books NATURAL JOIN publisher","All the above SQL statements are valid."],1,"The (+) operator can't be placed on both sides of the same condition.");
+P(0,C,"Which of the following statements about an outer join between two tables is true?",["If the relationship between the tables is established with a WHERE clause, both tables can include the outer join operator.","To include unmatched records in the results, the record is paired with a NULL record in the deficient table.","The RIGHT, LEFT, and FULL keywords are equivalent.","all of the above","none of the above"],1);
+P(0,C,"Which line in the following SQL statement raises an error?\n\n1. SELECT name, title\n2. FROM books b, publisher p\n3. WHERE books.pubid = publisher.pubid\n4. AND\n5. (retail > 25 OR retail-cost > 18.95);",["line 1","line 3","line 4","line 5"],1,"Once aliases b and p are defined, the full table names can't be used.");
+P(0,C,"What is the maximum number of characters allowed in a table alias?",["10","30","255","256"],1);
+P(0,C,"Which of the following SQL statements is valid?",["SELECT books.title, orderitems.quantity\nFROM books b, orderitems o\nWHERE b.isbn = o.ibsn;","SELECT title, quantity\nFROM books b JOIN orderitems o;","SELECT books.title, orderitems.quantity\nFROM books JOIN orderitems\nON books.isbn = orderitems.isbn;","none of the above"],2);
+var mode="all",list=[],i=0,score=0,tried=0,answered=false;
+var wrong=[];
+try{wrong=JSON.parse(localStorage.getItem("subq_wrong")||"[]")}catch(e){wrong=[]}
+function saveW(){try{localStorage.setItem("subq_wrong",JSON.stringify(wrong))}catch(e){}}
+var modes=[["all","All questions"],["section","By section"],["random","Random"],["wrong","Wrong answers"]];
+var $=function(id){return document.getElementById(id)};
+function shuffle(a){a=a.slice();for(var k=a.length-1;k>0;k--){var j=Math.floor(Math.random()*(k+1));var t=a[k];a[k]=a[j];a[j]=t}return a}
+function setMode(m){
+ mode=m;
+ $("secrow").style.display=m==="section"?"block":"none";
+ var idx=Q.map(function(_,k){return k}).sort(function(a,b){return Q[a].s-Q[b].s||a-b});
+ if(m==="all")list=idx;
+ else if(m==="section")list=idx.filter(function(k){return Q[k].s==+$("sec").value});
+ else if(m==="random")list=shuffle(idx);
+ else list=idx.filter(function(k){return wrong.indexOf(k)>-1});
+ i=0;score=0;tried=0;renderModes();render();
+}
+function renderModes(){
+ $("modes").innerHTML="";
+ modes.forEach(function(x){
+  var b=document.createElement("button");
+  b.textContent=x[1]+(x[0]==="wrong"?" ("+wrong.length+")":"");
+  if(x[0]===mode)b.className="on";
+  b.onclick=function(){setMode(x[0])};
+  $("modes").appendChild(b);
+ });
+}
+function render(){
+ var st=$("stage");answered=false;
+ $("fill").style.width=(list.length?Math.round(i/list.length*100):0)+"%";
+ if(!list.length){
+  $("pos").textContent="";$("score").textContent="";
+  st.innerHTML='<div class="card empty">'+(mode==="wrong"?"No missed questions yet. Answer some in another mode and any you miss will collect here.":"No questions in this set.")+"</div>";
+  return;
+ }
+ if(i>=list.length){
+  $("pos").textContent="Finished";$("score").textContent="";
+  var pct=tried?Math.round(score/tried*100):0;
+  st.innerHTML='<div class="card end"><div>Set complete</div><div class="big">'+score+" / "+tried+'</div><div>'+pct+'% correct</div><div class="ctl" style="justify-content:center"><button id="again" class="primary">Restart this set</button></div></div>';
+  $("again").onclick=function(){setMode(mode)};
+  return;
+ }
+ var q=Q[list[i]];
+ $("pos").textContent="Question "+(i+1)+" of "+list.length;
+ $("score").textContent="Score "+score+" / "+tried;
+ var h='<div class="card"><div class="sec">'+S[q.s]+(q.r?' \u2022 '+q.r:'')+'</div><p class="q"></p><div id="opts"></div><div id="exp"></div><div class="ctl"><button id="prev"'+(i?"":" disabled")+'>Previous</button><button id="next" class="primary" disabled>Next</button></div></div>';
+ st.innerHTML=h;
+ st.querySelector(".q").textContent=q.q;
+ var box=$("opts");
+ q.o.forEach(function(t,k){
+  var b=document.createElement("button");
+  b.className="opt"+(/^SELECT/.test(t)?"":" txt");
+  b.textContent=L[k].toUpperCase()+". "+t;
+  b.onclick=function(){pick(k)};
+  box.appendChild(b);
+ });
+ $("prev").onclick=function(){i--;render()};
+ $("next").onclick=function(){i++;render()};
+}
+function pick(k){
+ if(answered)return;answered=true;tried++;
+ var qi=list[i],q=Q[qi],ok=k===q.a;
+ var btns=document.querySelectorAll(".opt");
+ btns.forEach(function(b,n){b.disabled=true;if(n===q.a)b.classList.add("right");else if(n===k)b.classList.add("wrong")});
+ if(ok){score++;var p=wrong.indexOf(qi);if(p>-1){wrong.splice(p,1);saveW()}}
+ else if(wrong.indexOf(qi)<0){wrong.push(qi);saveW()}
+ $("exp").innerHTML='<div class="exp"><b class="'+(ok?"g":"r")+'">'+(ok?"Correct.":"Not quite. The answer is "+L[q.a].toUpperCase()+".")+"</b> </div>";
+ $("exp").firstChild.appendChild(document.createTextNode(q.e||''));
+ $("next").disabled=false;
+ $("next").textContent=i===list.length-1?"Finish":"Next";
+ $("score").textContent="Score "+score+" / "+tried;
+ var wb=modes[3];renderModes();
+}
+$("sec").innerHTML=S.map(function(s,k){var n=Q.filter(function(q){return q.s===k}).length;return '<option value="'+k+'">'+s+" ("+n+")</option>"}).join("");
+$("sec").onchange=function(){setMode("section")};
+$("reset").onclick=function(){wrong=[];saveW();setMode(mode)};
+document.addEventListener("keydown",function(e){
+ if(e.target.tagName==="SELECT")return;
+ var n="abcdef".indexOf(e.key.toLowerCase());
+ if(n>-1&&!answered&&list[i]!==undefined&&i<list.length&&Q[list[i]].o[n]!==undefined)pick(n);
+ else if((e.key==="Enter"||e.key==="ArrowRight")&&answered&&!$("next").disabled)$("next").click();
+});
+setMode("all");
+</script>
+</body>
+</html>
